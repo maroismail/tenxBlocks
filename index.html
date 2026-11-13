@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tenx-Blocks - C Language Edition</title>
+    <!-- CodeMirror Core & Assets -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+
+    <style>
+        :root {
+            --bg-main: #f3f4f6;
+            --bg-sidebar: #ffffff;
+            --bg-header: #ffffff;
+            --accent-color: #2563eb;
+            --accent-hover: #1d4ed8;
+            --border-color: #e5e7eb;
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --console-bg: #ffffff;
+            --console-text: #1f2937;
+        }
+
+        body.dark-mode {
+            --bg-main: #0f172a;
+            --bg-sidebar: #1e293b;
+            --bg-header: #1e293b;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --border-color: #334155;
+            --text-dark: #f8fafc;
+            --text-muted: #94a3b8;
+            --console-bg: #090d16;
+            --console-text: #38bdf8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 11px;
+            touch-action: manipulation;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-dark);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        /* Top Brand Header */
+        .brand-header {
+            background-color: var(--bg-header);
+            border-bottom: 1px solid var(--border-color);
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--accent-color);
+            letter-spacing: -0.3px;
+        }
+
+        .theme-toggle-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-dark);
+            padding: 3px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        /* Top Menu Bar */
+        .menu-bar {
+            background-color: var(--bg-header);
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            padding: 3px 8px;
+            gap: 2px;
+            overflow-x: auto;
+        }
+
+        .menu-item {
+            padding: 5px 10px;
+            cursor: pointer;
+            color: var(--text-dark);
+            border-radius: 4px;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: background 0.15s;
+        }
+
+        .menu-item:hover {
+            background-color: var(--border-color);
+            color: var(--accent-color);
+        }
+
+        /* Toolbar Area */
+        .toolbar-area {
+            background-color: var(--bg-header);
+            border-bottom: 1px solid var(--border-color);
+            padding: 5px 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            overflow-x: auto;
+            flex-wrap: nowrap;
+        }
+
+        .tool-btn {
+            background: var(--bg-sidebar);
+            border: 1px solid var(--border-color);
+            color: var(--text-dark);
+            padding: 5px 10px;
+            font-size: 11px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 500;
+            white-space: nowrap;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+            transition: all 0.15s;
+        }
+
+        .tool-btn:hover {
+            border-color: var(--accent-color);
+        }
+
+        .tool-btn.btn-run { background-color: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+        .tool-btn.btn-buildrun { background-color: #fffbeb; border-color: #fde68a; color: #b45309; }
+
+        .toolbar-separator {
+            width: 1px;
+            height: 18px;
+            background-color: var(--border-color);
+            margin: 0 2px;
+            flex-shrink: 0;
+        }
+
+        /* Workspace Layout - Full Width (Management removed) */
+        .workspace {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Editor Area */
+        .editor-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-main);
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .tabs-header {
+            background-color: var(--bg-header);
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            padding-top: 4px;
+            padding-left: 6px;
+            overflow-x: auto;
+        }
+
+        .tab {
+            background-color: var(--bg-main);
+            color: var(--text-muted);
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+            cursor: pointer;
+            font-size: 11px;
+            margin-right: 3px;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tab:hover { color: var(--text-dark); }
+        .tab.active {
+            background-color: var(--bg-sidebar);
+            color: var(--accent-color);
+            border-top: 2px solid var(--accent-color);
+            font-weight: 600;
+        }
+
+        .tab-close {
+            font-size: 10px;
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+        .tab-close:hover { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+        /* Start Page */
+        .start-page {
+            flex: 1;
+            background: var(--bg-sidebar);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .cb-logo-box { text-align: center; margin-bottom: 25px; }
+        .cb-logo-title { font-size: 32px; font-weight: 800; color: var(--accent-color); letter-spacing: -0.5px; }
+        .cb-logo-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+        .start-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .action-card {
+            border: 1px solid var(--border-color);
+            background: var(--bg-sidebar);
+            border-radius: 8px;
+            padding: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+
+        .action-card:hover { border-color: var(--accent-color); transform: translateY(-2px); }
+        .action-icon { font-size: 26px; }
+        .action-title { font-weight: 600; color: var(--accent-color); font-size: 12px; }
+
+        /* CodeMirror Custom Styling */
+        .editor-wrapper {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .CodeMirror {
+            flex: 1;
+            height: 100% !important;
+            background: var(--bg-sidebar) !important;
+            color: var(--text-dark) !important;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 18px;
+            line-height: 1.5 !important;
+        }
+
+        body.dark-mode .CodeMirror-gutters {
+            background: #1e293b !important;
+            border-right: 1px solid #334155 !important;
+        }
+
+        /* شريط الأقواس والتفاعل مع الكيبورد */
+        .keyboard-symbols-bar {
+            display: none;
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-header);
+            border-top: 1px solid var(--border-color);
+            padding: 8px 10px;
+            gap: 6px;
+            overflow-x: auto;
+            white-space: nowrap;
+            z-index: 1000;
+            box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+            transition: bottom 0.1s ease-out;
+        }
+
+        .symbol-chip {
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            color: var(--text-dark);
+            padding: 6px 12px;
+            font-size: 13px;
+            font-family: 'Consolas', monospace;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .symbol-chip:active { background-color: var(--accent-color); color: #fff; }
+
+        /* CodeMirror Hints */
+        .CodeMirror-hints {
+            background: var(--bg-sidebar) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 6px !important;
+            font-family: 'Consolas', monospace !important;
+            font-size: 13px !important;
+            z-index: 99999 !important;
+        }
+        .CodeMirror-hint { color: var(--text-dark) !important; padding: 4px 8px !important; }
+        .CodeMirror-hint-active { background-color: var(--accent-color) !important; color: #fff !important; }
+
+        /* Console Panel */
+        .bottom-panel {
+            height: 120px;
+            background-color: var(--bg-header);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-tabs {
+            background-color: var(--bg-main);
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .panel-tab {
+            padding: 5px 14px;
+            font-size: 11px;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .panel-tab.active {
+            background-color: var(--bg-sidebar);
+            color: var(--accent-color);
+            border-top: 2px solid var(--accent-color);
+            font-weight: 600;
+        }
+
+        .console-output {
+            flex: 1;
+            background-color: var(--console-bg);
+            color: var(--console-text);
+            padding: 8px 12px;
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            background-color: var(--accent-color);
+            color: #ffffff;
+            padding: 3px 12px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* Modals */
+        .wizard-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(2px);
+            z-index: 99999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .wizard-box {
+            width: 90%; max-width: 440px;
+            background: var(--bg-sidebar); color: var(--text-dark);
+            border-radius: 10px; box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            display: flex; flex-direction: column; border: 1px solid var(--border-color); overflow: hidden;
+        }
+
+        .wizard-header {
+            background: var(--bg-header); padding: 12px 16px; font-weight: 600; font-size: 12px;
+            display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color);
+        }
+        .wizard-header button { background: transparent; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; }
+
+        .wizard-body { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+        .wizard-body label { font-weight: 600; font-size: 11px; }
+        .wizard-body select, .wizard-body input {
+            padding: 8px 12px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-dark);
+            border-radius: 6px; outline: none; font-size: 12px;
+        }
+
+        .path-group { display: flex; gap: 6px; }
+        .path-group input { flex: 1; }
+        .btn-browse { padding: 0 14px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; color: var(--text-dark); font-weight: 600; }
+
+        .wizard-footer {
+            padding: 12px 18px; background: var(--bg-header); display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--border-color);
+        }
+        .wizard-footer button { padding: 6px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px; border: 1px solid var(--border-color); }
+        .btn-cancel { background: var(--bg-sidebar); color: var(--text-dark); }
+        .btn-continue { background: var(--accent-color); color: white; border-color: var(--accent-color); }
+        .btn-continue:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* CMD Modal */
+        .cmd-modal {
+            display: none; position: fixed; top: 15%; left: 10%; width: 85%; height: 380px; max-width: 680px;
+            background-color: #0f172a; color: #f8fafc; border: 1px solid #334155;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); z-index: 99999; flex-direction: column; font-family: 'Consolas', monospace; border-radius: 8px; overflow: hidden;
+        }
+        .cmd-header { background-color: #1e293b; color: #f8fafc; padding: 8px 12px; font-size: 11px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; cursor: move; touch-action: none; }
+        .cmd-body { flex: 1; padding: 14px; overflow-y: auto; font-size: 13px !important; line-height: 1.6; color: #f8fafc; }
+    </style>
+</head>
+<body>
+
+    <!-- Brand Header -->
+    <div class="brand-header">
+        <div class="brand-title">Tenx-Blocks - C Edition</div>
+        <button class="theme-toggle-btn" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+    </div>
+
+    <!-- Top Menu Bar -->
+    <div class="menu-bar">
+        <div class="menu-item" onclick="startNewFileWizard()">File</div>
+        <div class="menu-item">Edit</div>
+        <div class="menu-item" onclick="startNewFileWizard()">Project</div>
+        <div class="menu-item" onclick="buildCode()">Build</div>
+        <div class="menu-item" onclick="runCode()">Debug</div>
+        <div class="menu-item" onclick="alert('Tenx-Blocks IDE for C Language - Applied Technology School')">Help</div>
+    </div>
+
+    <!-- Toolbar Area -->
+    <div class="toolbar-area">
+        <button class="tool-btn" onclick="startNewFileWizard()">📄 New</button>
+        <button class="tool-btn" onclick="saveFile()">💾 Save</button>
+        <button class="tool-btn" onclick="exportFile()">📥 Export</button>
+        <div class="toolbar-separator"></div>
+
+        <button class="tool-btn" onclick="buildCode()">🔨 Build</button>
+        <button class="tool-btn btn-run" onclick="runCode()">▶ Run</button>
+        <button class="tool-btn btn-buildrun" onclick="buildAndRun()">⚙ Build & Run</button>
+        <div class="toolbar-separator"></div>
+
+        <button class="tool-btn" onclick="triggerAutoComplete()">💡 Hint</button>
+        <button class="tool-btn" onclick="clearConsole()">🧹 Clear Log</button>
+    </div>
+
+    <!-- Workspace (Full Width Editor) -->
+    <div class="workspace">
+        <div class="editor-area">
+            <div class="tabs-header" id="tabsHeader">
+                <div class="tab active" id="tab-start" onclick="showStartPage()">Start here</div>
+            </div>
+
+            <!-- Start Here Page -->
+            <div class="start-page" id="startPage">
+                <div class="cb-logo-box">
+                    <div class="cb-logo-title">Tenx-Blocks (C)</div>
+                    <div class="cb-logo-sub">C Language IDE for Applied Technology School</div>
+                </div>
+
+                <div class="start-actions">
+                    <div class="action-card" onclick="startNewFileWizard()">
+                        <div class="action-icon">📁</div>
+                        <div>
+                            <div class="action-title">Create a new C file</div>
+                            <div style="color:var(--text-muted); font-size:10px;">Configure .c file</div>
+                        </div>
+                    </div>
+                    <div class="action-card" onclick="startNewFileWizard()">
+                        <div class="action-icon">📂</div>
+                        <div>
+                            <div class="action-title">Open project wizard</div>
+                            <div style="color:var(--text-muted); font-size:10px;">Set workspace directory</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor Wrapper -->
+            <div class="editor-wrapper" id="editorWrapper">
+                <textarea id="codeEditor"></textarea>
+                
+                <!-- شريط الأقواس والتفاعل مع الكيبورد (متحرك مع الكيبورد تلقائياً) -->
+                <div class="keyboard-symbols-bar" id="keyboardSymbolsBar">
+                    <div class="symbol-chip" onclick="insertSymbol('{ }')">{ }</div>
+                    <div class="symbol-chip" onclick="insertSymbol('( )')">( )</div>
+                    <div class="symbol-chip" onclick="insertSymbol('[ ]')">[ ]</div>
+                    <div class="symbol-chip" onclick="insertSymbol(';')">;</div>
+                    <div class="symbol-chip" onclick="insertSymbol('&quot; &quot;')">" "</div>
+                    <div class="symbol-chip" onclick="insertSymbol(&quot;' '&quot;)">' '</div>
+                    <div class="symbol-chip" onclick="insertSymbol('#')">#</div>
+                    <div class="symbol-chip" onclick="insertSymbol('<')">&lt;</div>
+                    <div class="symbol-chip" onclick="insertSymbol('>')">&gt;</div>
+                    <div class="symbol-chip" onclick="insertSymbol('&amp;')">&amp;</div>
+                    <div class="symbol-chip" onclick="insertSymbol('*')">*</div>
+                    <div class="symbol-chip" onclick="insertSymbol('|')">|</div>
+                    <div class="symbol-chip" onclick="insertSymbol('=')">=</div>
+                    <div class="symbol-chip" onclick="insertSymbol('+')">+</div>
+                    <div class="symbol-chip" onclick="insertSymbol('-')">-</div>
+                    <div class="symbol-chip" onclick="insertSymbol('/')">/</div>
+                    <div class="symbol-chip" onclick="insertSymbol('%')">%</div>
+                    <div class="symbol-chip" onclick="insertSymbol(',')">,</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Console Panel -->
+    <div class="bottom-panel">
+        <div class="panel-tabs">
+            <div class="panel-tab active" onclick="switchPanelTab(0)" id="panelTab0">Build log</div>
+            <div class="panel-tab" onclick="switchPanelTab(1)" id="panelTab1">Build messages</div>
+        </div>
+        <div class="console-output" id="consoleOutput">Tenx-Blocks C Edition initialized successfully. Ready.</div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div id="statusText">Status: Ready</div>
+        <div id="zoomIndicator">GNU GCC Compiler (C Language)</div>
+    </div>
+
+    <!-- New File Wizard Modal -->
+    <div class="wizard-overlay" id="fileWizardModal">
+        <div class="wizard-box" onclick="event.stopPropagation()">
+            <div class="wizard-header">
+                <span>Tenx-Blocks - New C File</span>
+                <button onclick="closeWizard()">✕</button>
+            </div>
+            <div class="wizard-body">
+                <label>1. Language:</label>
+                <select id="wizardLang" onchange="validateWizardForm()">
+                    <option value="none">-- Select Language --</option>
+                    <option value="c" selected>C Language (.c)</option>
+                </select>
+
+                <label>2. File Name:</label>
+                <input type="text" id="wizardName" value="" placeholder="e.g. main.c" oninput="validateWizardForm()">
+
+                <label>3. Save Path / Directory:</label>
+                <div class="path-group">
+                    <input type="text" id="wizardPath" value="" placeholder="e.g. C:\TenxProject" oninput="validateWizardForm()">
+                    <button class="btn-browse" onclick="browseFolder()">...</button>
+                </div>
+            </div>
+            <div class="wizard-footer">
+                <button class="btn-cancel" onclick="closeWizard()">Cancel</button>
+                <button class="btn-continue" id="btnContinueWizard" onclick="confirmNewFile()" disabled>Continue ➔</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CMD Modal (Draggable Mouse & Touch) -->
+    <div class="cmd-modal" id="cmdModal">
+        <div class="cmd-header" id="cmdHeader">
+            <span>C:\Windows\system32\cmd.exe - TenxProject.exe</span>
+            <button onclick="document.getElementById('cmdModal').style.display='none'" style="background:#ef4444; color:white; border:none; padding: 2px 8px; border-radius: 4px; cursor:pointer;">X</button>
+        </div>
+        <div class="cmd-body" id="cmdBody"></div>
+    </div>
+
+    <script>
+        const createdFiles = {};
+        let activeFileName = null;
+        let lastBuildErrors = [];
+        let activePanelTab = 0;
+
+        // مكتبة الهينتات والاقتراحات الخام الكاملة للغة C
+        const cKeywords = [
+            "#include <stdio.h>",
+            "#include <stdlib.h>",
+            "#include <string.h>",
+            "#include <math.h>",
+            "int main() {\n    \n    return 0;\n}",
+            "printf(\"\\n\");",
+            "scanf(\"%d\", &);",
+            "int", "float", "double", "char", "void", "long", "short", "unsigned", "signed",
+            "if () {\n    \n}",
+            "else {\n    \n}",
+            "else if () {\n    \n}",
+            "for (int i = 0; i < ; i++) {\n    \n}",
+            "while () {\n    \n}",
+            "do {\n    \n} while ();",
+            "switch () {\n    case 1:\n        break;\n    default:\n        break;\n}",
+            "return 0;",
+            "break;",
+            "continue;",
+            "struct Node {\n    int data;\n    struct Node* next;\n};",
+            "malloc()",
+            "free()",
+            "strlen()",
+            "strcpy()"
+        ];
+
+        CodeMirror.registerHelper("hint", "cSmartHint", function(cm) {
+            let cur = cm.getCursor();
+            let token = cm.getTokenAt(cur);
+            let lineStr = cm.getLine(cur.line);
+            let curWord = lineStr.slice(token.start, token.end).trim();
+
+            let text = cm.getValue();
+            let userWords = text.match(/\b[A-Za-z_][A-Za-z0-9_]*\b/g) || [];
+            let pool = Array.from(new Set([...cKeywords, ...userWords]));
+
+            let cleanSearch = curWord.toLowerCase();
+            let matches = cleanSearch.length > 0 ? pool.filter(w => w.toLowerCase().includes(cleanSearch)) : pool.slice(0, 15);
+
+            return {
+                list: matches,
+                from: CodeMirror.Pos(cur.line, token.start),
+                to: CodeMirror.Pos(cur.line, token.end)
+            };
+        });
+
+        const editor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
+            mode: "text/x-csrc",
+            lineNumbers: true,
+            indentUnit: 4,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            extraKeys: {"Ctrl-Space": "autocomplete"}
+        });
+
+        editor.on("inputRead", function(cm, change) {
+            if (!cm.state.completionActive && change.text[0].match(/[\w#]/)) {
+                CodeMirror.showHint(cm, CodeMirror.hint.cSmartHint, { completeSingle: false });
+            }
+        });
+
+        function triggerAutoComplete() {
+            CodeMirror.showHint(editor, CodeMirror.hint.cSmartHint, { completeSingle: false });
+        }
+
+        function insertSymbol(symbol) {
+            if (!activeFileName) {
+                alert("يرجى فتح ملف أولاً لتتمكن من الكتابة فيه!");
+                return;
+            }
+            if (symbol === '{ }' || symbol === '( )' || symbol === '[ ]' || symbol === '" "' || symbol === "' '") {
+                let doc = editor.getDoc();
+                let cursor = doc.getCursor();
+                doc.replaceRange(symbol[0] + symbol[2], cursor);
+                doc.setCursor({line: cursor.line, ch: cursor.ch + 1});
+            } else {
+                editor.replaceSelection(symbol);
+            }
+            editor.focus();
+        }
+
+        editor.on("change", function() {
+            if (activeFileName) {
+                createdFiles[activeFileName].content = editor.getValue();
+            }
+        });
+
+        // تفاعل كيبورد الموبايل مع الشريط السفلي
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+                const symbolsBar = document.getElementById('keyboardSymbolsBar');
+                if (activeFileName && symbolsBar.style.display === 'flex') {
+                    const keyboardHeight = window.innerHeight - window.visualViewport.height;
+                    symbolsBar.style.bottom = (keyboardHeight > 100 ? keyboardHeight : 0) + 'px';
+                }
+            });
+        }
+
+        function showStartPage() {
+            document.getElementById('startPage').style.display = 'flex';
+            document.getElementById('editorWrapper').style.display = 'none';
+            document.getElementById('keyboardSymbolsBar').style.display = 'none';
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-start').classList.add('active');
+            activeFileName = null;
+        }
+
+        function openFile(filename) {
+            activeFileName = filename;
+            document.getElementById('startPage').style.display = 'none';
+            document.getElementById('editorWrapper').style.display = 'flex';
+            
+            const symbolsBar = document.getElementById('keyboardSymbolsBar');
+            symbolsBar.style.display = 'flex';
+            symbolsBar.style.bottom = '0px';
+
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            let tabEl = document.getElementById(`tab-${filename}`);
+            if (tabEl) tabEl.classList.add('active');
+
+            editor.setValue(createdFiles[filename].content);
+            setTimeout(() => { editor.refresh(); editor.focus(); }, 50);
+        }
+
+        function closeFile(e, filename) {
+            e.stopPropagation();
+            let tabEl = document.getElementById(`tab-${filename}`);
+            if (tabEl) tabEl.remove();
+
+            delete createdFiles[filename];
+
+            if (activeFileName === filename) {
+                let remainingFiles = Object.keys(createdFiles);
+                if (remainingFiles.length > 0) {
+                    openFile(remainingFiles[remainingFiles.length - 1]);
+                } else {
+                    showStartPage();
+                }
+            }
+        }
+
+        function startNewFileWizard() {
+            document.getElementById('wizardLang').value = 'c';
+            document.getElementById('wizardName').value = '';
+            document.getElementById('wizardPath').value = '';
+            validateWizardForm();
+            document.getElementById('fileWizardModal').style.display = 'flex';
+        }
+
+        function closeWizard() {
+            document.getElementById('fileWizardModal').style.display = 'none';
+        }
+
+        function validateWizardForm() {
+            const fileName = document.getElementById('wizardName').value.trim();
+            const filePath = document.getElementById('wizardPath').value.trim();
+            document.getElementById('btnContinueWizard').disabled = !(fileName.length > 0 && filePath.length > 0);
+        }
+
+        async function browseFolder() {
+            try {
+                if (window.showDirectoryPicker) {
+                    const dirHandle = await window.showDirectoryPicker();
+                    if (dirHandle && dirHandle.name) {
+                        document.getElementById('wizardPath').value = `C:\\${dirHandle.name}`;
+                        validateWizardForm();
+                    }
+                } else {
+                    let customPath = prompt("Enter folder directory:", "C:\\TenxProject");
+                    if (customPath) { document.getElementById('wizardPath').value = customPath.trim(); validateWizardForm(); }
+                }
+            } catch (err) {}
+        }
+
+        function confirmNewFile() {
+            let fileName = document.getElementById('wizardName').value.trim();
+            const filePath = document.getElementById('wizardPath').value.trim();
+            if (!fileName.endsWith('.c')) fileName += '.c';
+            closeWizard();
+
+            createdFiles[fileName] = { content: "", path: filePath };
+
+            let tabsHeader = document.getElementById('tabsHeader');
+            if (!document.getElementById(`tab-${fileName}`)) {
+                let tab = document.createElement('div');
+                tab.className = 'tab';
+                tab.id = `tab-${fileName}`;
+                tab.innerHTML = `<span>📄 ${fileName}</span> <span class="tab-close" onclick="closeFile(event, '${fileName}')">✕</span>`;
+                tab.onclick = () => openFile(fileName);
+                tabsHeader.appendChild(tab);
+            }
+
+            openFile(fileName);
+            logConsole(`Created C file '${fileName}' in [${filePath}].`);
+        }
+
+        function switchPanelTab(index) {
+            activePanelTab = index;
+            document.getElementById('panelTab0').className = index === 0 ? 'panel-tab active' : 'panel-tab';
+            document.getElementById('panelTab1').className = index === 1 ? 'panel-tab active' : 'panel-tab';
+            renderConsoleOutput();
+        }
+
+        function renderConsoleOutput() {
+            const consoleBox = document.getElementById('consoleOutput');
+            if (activePanelTab === 0) {
+                consoleBox.innerHTML = consoleBox.dataset.buildLog || "Tenx-Blocks C Edition initialized successfully. Ready.";
+            } else {
+                consoleBox.innerHTML = lastBuildErrors.length === 0 ? "No syntax or build messages found." : lastBuildErrors.join("\n");
+            }
+        }
+
+        function logConsole(msg) {
+            const consoleBox = document.getElementById('consoleOutput');
+            let current = consoleBox.dataset.buildLog || "Tenx-Blocks C Edition initialized successfully. Ready.";
+            consoleBox.dataset.buildLog = current + `\n${msg}`;
+            if (activePanelTab === 0) {
+                consoleBox.innerHTML = consoleBox.dataset.buildLog;
+                consoleBox.scrollTop = consoleBox.scrollHeight;
+            }
+        }
+
+        function clearConsole() {
+            const consoleBox = document.getElementById('consoleOutput');
+            consoleBox.dataset.buildLog = "";
+            consoleBox.innerHTML = "";
+            lastBuildErrors = [];
+        }
+
+        function saveFile() {
+            logConsole(`File '${activeFileName || "untitled"}' saved successfully.`);
+            alert("تم حفظ الملف بنجاح!");
+        }
+
+        function exportFile() {
+            if (!activeFileName) {
+                alert("افتح ملفاً أولاً لتصديره!");
+                return;
+            }
+            const blob = new Blob([editor.getValue()], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = activeFileName;
+            link.click();
+            logConsole(`File '${activeFileName}' exported successfully.`);
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            document.querySelector('.theme-toggle-btn').innerHTML = isDark ? "☀️ Light Mode" : "🌙 Dark Mode";
+        }
+
+        function buildCode() {
+            lastBuildErrors = [];
+            logConsole(`-------------- Build: GCC Compiler (C) --------------`);
+            if (activeFileName) {
+                const code = editor.getValue();
+                let lines = code.split('\n');
+                let openBraces = 0, closeBraces = 0;
+
+                lines.forEach((line, idx) => {
+                    let trimmed = line.trim();
+                    if (trimmed.length > 0 && !trimmed.endsWith(';') && !trimmed.endsWith('{') && !trimmed.endsWith('}') && !trimmed.startsWith('#') && !trimmed.startsWith('//')) {
+                        if (!trimmed.includes("main") && !trimmed.includes("if") && !trimmed.includes("for") && !trimmed.includes("while")) {
+                            lastBuildErrors.push(`[Warning] Line ${idx + 1}: Possible missing semicolon ';'`);
+                        }
+                    }
+                    for (let char of line) {
+                        if (char === '{') openBraces++;
+                        if (char === '}') closeBraces++;
+                    }
+                });
+
+                if (openBraces !== closeBraces) {
+                    lastBuildErrors.push(`[Error] Brace mismatch: opened { (${openBraces}), closed } (${closeBraces})`);
+                }
+            }
+            logConsole(lastBuildErrors.length === 0 ? "Target compiled with 0 errors." : `Target compiled with ${lastBuildErrors.length} message(s).`);
+        }
+
+        function runCode() {
+            if (!activeFileName) {
+                alert("اختر ملفاً أولاً لتشغيله!");
+                return;
+            }
+
+            const cmdModal = document.getElementById('cmdModal');
+            const cmdBody = document.getElementById('cmdBody');
+            cmdModal.style.display = 'flex';
+            cmdBody.innerHTML = `Microsoft Windows [Version 10.0.19045]\nC:\\TenxProject> gcc ${activeFileName} -o main.exe && main.exe\n<br>`;
+
+            setTimeout(() => {
+                const codeText = editor.getValue();
+                let output = "Process returned 0.";
+                let match = codeText.match(/printf\s*\(\s*"([^"]*)"\s*\);?/);
+                if (match) output = match[1];
+
+                cmdBody.innerHTML += `<span style="color: #38bdf8; font-weight: bold;">${output}</span><br>`;
+                cmdBody.innerHTML += `<br>Process returned 0 (0x0)   execution time : 0.012 s<br>Press any key to continue . . .`;
+            }, 300);
+        }
+
+        function buildAndRun() {
+            buildCode();
+            setTimeout(runCode, 300);
+        }
+
+        // Draggable CMD (Mouse & Touch Support)
+        const cmdModal = document.getElementById('cmdModal');
+        const cmdHeader = document.getElementById('cmdHeader');
+        let isDragging = false, startX, startY;
+
+        cmdHeader.addEventListener('mousedown', (e) => {
+            isDragging = true; startX = e.clientX - cmdModal.offsetLeft; startY = e.clientY - cmdModal.offsetTop;
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            cmdModal.style.left = (e.clientX - startX) + 'px';
+            cmdModal.style.top = (e.clientY - startY) + 'px';
+        });
+        document.addEventListener('mouseup', () => { isDragging = false; });
+
+        cmdHeader.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            const touch = e.touches[0];
+            startX = touch.clientX - cmdModal.offsetLeft;
+            startY = touch.clientY - cmdModal.offsetTop;
+        });
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            const touch = e.touches[0];
+            cmdModal.style.left = (touch.clientX - startX) + 'px';
+            cmdModal.style.top = (touch.clientY - startY) + 'px';
+        });
+        document.addEventListener('touchend', () => { isDragging = false; });
+    </script>
+</body>
+</html>
